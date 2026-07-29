@@ -6,12 +6,15 @@ export function SectionFiche({
   compte,
   action,
   className,
+  corpsClassName,
   children,
 }: {
   titre: string;
   compte?: number;
   action?: React.ReactNode;
   className?: string;
+  /** Pour les corps qui gèrent leur propre marge intérieure (listes divisées). */
+  corpsClassName?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -27,7 +30,7 @@ export function SectionFiche({
         </h2>
         {action}
       </div>
-      <div className="p-4">{children}</div>
+      <div className={cn("p-4", corpsClassName)}>{children}</div>
     </section>
   );
 }

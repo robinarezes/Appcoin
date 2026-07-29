@@ -117,6 +117,29 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/*
+ * Palette des graphiques.
+ *
+ * Bleu et orange : la paire est volontairement choisie pour rester
+ * distinguable en vision daltonienne (écart ΔE ≥ 24 en protanopie comme en
+ * tritanopie) et pour tenir un contraste ≥ 3:1 sur les deux fonds. Les valeurs
+ * du mode sombre ne sont pas un simple éclaircissement : ce sont les mêmes
+ * teintes re-calibrées pour le fond sombre.
+ */
+:root {
+  --viz-1: #2a78d6; /* facturé */
+  --viz-2: #eb6834; /* encaissé */
+  --viz-grille: #e1e0d9;
+  --viz-axe: #898781;
+}
+
+.dark {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-grille: #2c2c2a;
+  --viz-axe: #898781;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
