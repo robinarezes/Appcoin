@@ -21,7 +21,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (connecte && pathname === "/login") {
+  // Déjà connecté : on renvoie à l'accueil, sauf quand la garde serveur nous a
+  // explicitement envoyés ici parce que le compte n'existe plus.
+  if (connecte && pathname === "/login" && !request.nextUrl.searchParams.has("session")) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

@@ -75,8 +75,9 @@ export default async function PageFactures({
       ) : factures.length === 0 ? (
         <EtatVide Icone={ReceiptIcon} titre="Aucune facture avec ce statut" />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-background">
-          <table className="w-full text-sm">
+        // Le tableau défile dans son propre cadre plutôt que d'élargir la page.
+        <div className="overflow-x-auto rounded-xl border bg-background">
+          <table className="w-full min-w-[44rem] text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Numéro</th>

@@ -143,7 +143,10 @@ export default async function PageChiffreAffaires({
               Toutes les factures sont réglées.
             </p>
           ) : (
-            <table className="w-full text-sm">
+            /* Le tableau défile dans son propre cadre : la page, elle, ne
+               défile jamais horizontalement, même sur un écran de téléphone. */
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[38rem] text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
                   <th className="px-4 py-2.5 font-medium">Numéro</th>
@@ -197,6 +200,7 @@ export default async function PageChiffreAffaires({
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </SectionFiche>
       </div>

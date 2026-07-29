@@ -89,7 +89,6 @@ export default async function PageRendezVous({
           </div>
 
           <CalendrierMois
-            annee={annee}
             mois={mois}
             cases={calendrier.cases}
             rendezVous={calendrier.rendezVous}

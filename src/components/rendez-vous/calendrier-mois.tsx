@@ -16,12 +16,11 @@ import { cn } from "@/lib/utils";
  * quand on regarde le mois de loin.
  */
 export function CalendrierMois({
-  annee,
   mois,
   cases,
   rendezVous,
 }: {
-  annee: number;
+  /** Index du mois affiché (0–11) : sert à griser les jours des mois voisins. */
   mois: number;
   cases: Date[];
   rendezVous: RendezVousComplet[];
