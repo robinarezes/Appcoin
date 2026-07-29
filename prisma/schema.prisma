@@ -28,6 +28,7 @@ model User {
   notes           Note[]
   rendezVous      RendezVous[] @relation("Participant")
   tachesAssignees Tache[]      @relation("Assignee")
+  appels          Appel[]
 }
 
 model Client {
@@ -51,6 +52,7 @@ model Client {
   taches     Tache[]
   offres     Offre[]
   factures   Facture[]
+  appels     Appel[]
 
   @@index([statut])
   @@index([ville])
@@ -85,9 +87,32 @@ model RendezVous {
 
   client      Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
   participant User    @relation("Participant", fields: [participantId], references: [id])
+  appels      Appel[]
 
   @@index([dateDebut])
   @@index([clientId])
+}
+
+/// Compte-rendu d'un appel de prospection : ce qu'on a retenu juste après
+/// avoir raccroché. `rendezVousId` relie l'appel au rendez-vous qu'il a
+/// éventuellement généré.
+model Appel {
+  id            String    @id @default(cuid())
+  clientId      String
+  auteurId      String
+  resultat      String // RDV_PRIS | INTERESSE | A_RAPPELER | PAS_INTERESSE | INJOIGNABLE
+  note          String?
+  dureeSecondes Int       @default(0)
+  rappelLe      DateTime?
+  rendezVousId  String?
+  createdAt     DateTime  @default(now())
+
+  client     Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  auteur     User        @relation(fields: [auteurId], references: [id])
+  rendezVous RendezVous? @relation(fields: [rendezVousId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@index([createdAt])
 }
 
 model Tache {

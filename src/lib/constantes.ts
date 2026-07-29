@@ -205,6 +205,60 @@ export const STATUTS_FACTURE = {
   },
 } as const satisfies Record<string, Entree>;
 
+/**
+ * Issue d'un appel de prospection. L'ordre compte : c'est celui des boutons
+ * proposés juste après avoir raccroché, du plus positif au plus négatif.
+ */
+export const RESULTATS_APPEL = {
+  RDV_PRIS: {
+    label: "Rendez-vous pris",
+    classe: badge(
+      "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+      "dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/25",
+    ),
+  },
+  INTERESSE: {
+    label: "Intéressé",
+    classe: badge(
+      "bg-sky-50 text-sky-700 ring-sky-600/20",
+      "dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-400/25",
+    ),
+  },
+  A_RAPPELER: {
+    label: "À rappeler",
+    classe: badge(
+      "bg-amber-50 text-amber-800 ring-amber-600/20",
+      "dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/25",
+    ),
+  },
+  PAS_INTERESSE: {
+    label: "Pas intéressé",
+    classe: badge(
+      "bg-rose-50 text-rose-700 ring-rose-600/20",
+      "dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/25",
+    ),
+  },
+  INJOIGNABLE: {
+    label: "Injoignable",
+    classe: badge(
+      "bg-zinc-100 text-zinc-600 ring-zinc-500/20",
+      "dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-400/20",
+    ),
+  },
+} as const satisfies Record<string, Entree>;
+
+/** Statut client appliqué automatiquement selon l'issue de l'appel. */
+export const STATUT_APRES_APPEL: Record<string, StatutClient | null> = {
+  RDV_PRIS: "EN_DISCUSSION",
+  INTERESSE: "EN_DISCUSSION",
+  A_RAPPELER: null, // on ne touche à rien : le dossier n'a pas avancé
+  PAS_INTERESSE: "PERDU",
+  INJOIGNABLE: null,
+};
+
+export type ResultatAppel = keyof typeof RESULTATS_APPEL;
+export const CLES_RESULTAT_APPEL = Object.keys(RESULTATS_APPEL) as ResultatAppel[];
+
 export type StatutClient = keyof typeof STATUTS_CLIENT;
 export type SourceClient = keyof typeof SOURCES_CLIENT;
 export type StatutTache = keyof typeof STATUTS_TACHE;
