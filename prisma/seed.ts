@@ -726,7 +726,101 @@ async function main() {
     });
   }
 
+  // --- Fiches de prospection téléphonique ---
+  // Des boutiques repérées mais pas encore travaillées : c'est la file
+  // d'appel du jour au premier lancement.
+
+  const prospection = [
+    {
+      entreprise: "Pizzeria Da Vinci",
+      telephone: "02 99 63 21 40",
+      ville: "Rennes",
+      secteur: "Restaurant",
+      appel: null,
+    },
+    {
+      entreprise: "Toilettage Patte de Velours",
+      telephone: "02 99 84 12 07",
+      ville: "Chantepie",
+      secteur: "Services aux entreprises",
+      appel: null,
+    },
+    {
+      entreprise: "Garage Moto Kerlann",
+      telephone: "02 99 77 30 55",
+      ville: "Pacé",
+      secteur: "Automobile",
+      appel: {
+        resultat: "A_RAPPELER",
+        note: "Le patron était sur un chantier. Rappeler en fin de semaine, plutôt le matin.",
+        ilYaJours: 9,
+        rappelDans: -1, // rappel prévu hier : la fiche remonte en tête
+        auteur: 0 as const,
+      },
+    },
+    {
+      entreprise: "Cave Les Trois Tonneaux",
+      telephone: "02 99 38 64 92",
+      ville: "Saint-Grégoire",
+      secteur: "Commerce de détail",
+      appel: {
+        resultat: "INTERESSE",
+        note: "Intéressée mais pas avant janvier. Budget évoqué : autour de 1 500 €.",
+        ilYaJours: 4,
+        rappelDans: null,
+        auteur: 1 as const,
+      },
+    },
+    {
+      entreprise: "Institut Belle Époque",
+      telephone: "02 99 51 77 18",
+      ville: "Bruz",
+      secteur: "Institut de beauté",
+      appel: {
+        resultat: "PAS_INTERESSE",
+        note: "A déjà un site refait l'an dernier. Ne pas relancer avant longtemps.",
+        ilYaJours: 15,
+        rappelDans: null,
+        auteur: 0 as const,
+      },
+    },
+  ];
+
+  for (const p of prospection) {
+    const client = await prisma.client.create({
+      data: {
+        entreprise: p.entreprise,
+        telephone: p.telephone,
+        ville: p.ville,
+        secteur: p.secteur,
+        statut:
+          p.appel?.resultat === "PAS_INTERESSE"
+            ? "PERDU"
+            : p.appel?.resultat === "INTERESSE"
+              ? "EN_DISCUSSION"
+              : "PROSPECT",
+        source: "PROSPECTION",
+        createdAt: jour(-20),
+      },
+    });
+
+    if (p.appel) {
+      await prisma.appel.create({
+        data: {
+          clientId: client.id,
+          auteurId: equipe[p.appel.auteur].id,
+          resultat: p.appel.resultat,
+          note: p.appel.note,
+          dureeSecondes: 120 + Math.round(Math.random() * 180),
+          rappelLe: p.appel.rappelDans === null ? null : jour(p.appel.rappelDans),
+          createdAt: jour(-p.appel.ilYaJours, 11),
+        },
+      });
+    }
+  }
+
   console.log(`${taches.length} tâches créées`);
+  console.log(`${prospection.length} fiches de prospection créées`);
   console.log("\nSeed terminé.");
   console.log("  robin@agence.fr / demo1234");
   console.log("  camille@agence.fr / demo1234");

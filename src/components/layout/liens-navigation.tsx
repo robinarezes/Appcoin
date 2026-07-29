@@ -7,6 +7,7 @@ import {
   FileTextIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
+  PhoneCallIcon,
   ReceiptIcon,
   TrendingUpIcon,
   UsersIcon,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 export const LIENS = [
   { href: "/", label: "Dashboard", Icone: LayoutDashboardIcon },
+  { href: "/prospection", label: "Prospection", Icone: PhoneCallIcon },
   { href: "/clients", label: "Clients", Icone: UsersIcon },
   { href: "/rendez-vous", label: "Rendez-vous", Icone: CalendarDaysIcon },
   { href: "/taches", label: "Tâches", Icone: ListChecksIcon },
