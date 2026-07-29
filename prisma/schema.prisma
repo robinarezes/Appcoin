@@ -1,0 +1,168 @@
+// Schéma du mini-CRM de l'agence.
+//
+// SQLite ne supporte pas les `enum` Prisma : tous les statuts sont des `String`
+// dont les valeurs autorisées sont définies dans src/lib/constantes.ts et
+// validées par Zod avant écriture. Le schéma reste ainsi compatible PostgreSQL
+// (Vercel + Neon) sans changer une ligne de code applicatif.
+//
+// Les montants sont stockés en CENTIMES (Int) : arithmétique exacte, et
+// sérialisable entre Server et Client Components (contrairement à Decimal).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  nom          String
+  email        String   @unique
+  passwordHash String
+  couleur      String   @default("#2563eb") // code couleur dans le calendrier
+  createdAt    DateTime @default(now())
+
+  notes           Note[]
+  rendezVous      RendezVous[] @relation("Participant")
+  tachesAssignees Tache[]      @relation("Assignee")
+}
+
+model Client {
+  id            String   @id @default(cuid())
+  entreprise    String
+  nomContact    String?
+  email         String?
+  telephone     String?
+  adresse       String?
+  ville         String?
+  secteur       String? // restaurant, coiffeur, artisan...
+  statut        String   @default("PROSPECT") // PROSPECT | EN_DISCUSSION | CLIENT | INACTIF | PERDU
+  source        String? // BOUCHE_A_OREILLE | PROSPECTION | RESEAUX | SITE_WEB | AUTRE
+  siteWebActuel String?
+  notes         String? // bloc-notes permanent, distinct du journal
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  journal    Note[]
+  rendezVous RendezVous[]
+  taches     Tache[]
+  offres     Offre[]
+  factures   Facture[]
+
+  @@index([statut])
+  @@index([ville])
+  @@index([entreprise])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  clientId  String
+  auteurId  String
+  contenu   String
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  auteur User   @relation(fields: [auteurId], references: [id])
+
+  @@index([clientId, createdAt])
+}
+
+model RendezVous {
+  id            String   @id @default(cuid())
+  clientId      String?
+  titre         String
+  dateDebut     DateTime
+  dateFin       DateTime
+  lieu          String?
+  type          String   @default("PHYSIQUE") // PHYSIQUE | TELEPHONE | VISIO
+  participantId String
+  notes         String? // compte-rendu saisi après le rendez-vous
+  statut        String   @default("PREVU") // PREVU | FAIT | ANNULE
+  createdAt     DateTime @default(now())
+
+  client      Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  participant User    @relation("Participant", fields: [participantId], references: [id])
+
+  @@index([dateDebut])
+  @@index([clientId])
+}
+
+model Tache {
+  id           String    @id @default(cuid())
+  titre        String
+  description  String?
+  clientId     String?
+  assigneeId   String
+  priorite     String    @default("NORMALE") // BASSE | NORMALE | HAUTE
+  dateEcheance DateTime?
+  statut       String    @default("A_FAIRE") // A_FAIRE | EN_COURS | FAIT
+  ordre        Int       @default(0) // position dans la colonne du kanban
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  assignee User    @relation("Assignee", fields: [assigneeId], references: [id])
+
+  @@index([statut, ordre])
+  @@index([clientId])
+}
+
+model Offre {
+  id              String    @id @default(cuid())
+  numero          String    @unique // OFF-2026-001
+  clientId        String
+  titre           String
+  description     String?
+  montantHTCents  Int       @default(0) // recalculé depuis les lignes
+  tauxTVA         Int       @default(2000) // points de base : 2000 = 20,00 %
+  montantTTCCents Int       @default(0)
+  statut          String    @default("BROUILLON") // BROUILLON | ENVOYEE | ACCEPTEE | REFUSEE
+  dateEnvoi       DateTime?
+  dateReponse     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  client   Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lignes   LigneOffre[]
+  factures Facture[]
+
+  @@index([clientId])
+  @@index([statut])
+}
+
+model LigneOffre {
+  id                  String @id @default(cuid())
+  offreId             String
+  libelle             String
+  quantite            Int    @default(1)
+  prixUnitaireHTCents Int
+  ordre               Int    @default(0)
+
+  offre Offre @relation(fields: [offreId], references: [id], onDelete: Cascade)
+
+  @@index([offreId])
+}
+
+model Facture {
+  id              String    @id @default(cuid())
+  numero          String    @unique // FAC-2026-001
+  offreId         String?
+  clientId        String
+  montantHTCents  Int
+  tauxTVA         Int       @default(2000)
+  montantTTCCents Int
+  dateEmission    DateTime  @default(now())
+  dateEcheance    DateTime
+  datePaiement    DateTime? // null = impayée
+  statut          String    @default("EN_ATTENTE") // EN_ATTENTE | PAYEE | RETARD (RETARD est dérivé à l'affichage)
+  createdAt       DateTime  @default(now())
+
+  offre  Offre? @relation(fields: [offreId], references: [id], onDelete: SetNull)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([statut, dateEcheance])
+}
