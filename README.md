@@ -20,27 +20,44 @@ toutes les fonctionnalités possibles.
 | **Offres**       | Lignes avec totaux HT/TVA/TTC, statuts, conversion en facture                                                                       |
 | **Factures**     | Suivi des règlements et des retards                                                                                                 |
 | **CA**           | Facturé vs encaissé par mois, top clients, secteurs, taux de transformation, impayés                                                |
+| **Équipe**       | Ajouter un compte, changer un mot de passe, sa couleur, retirer ou rendre un accès                                                  |
 
 ## Démarrage
 
+L'application tourne sur PostgreSQL. Le plus simple est de la déployer d'abord
+(voir [DEPLOIEMENT.md](DEPLOIEMENT.md)), puis de récupérer les variables de
+connexion pour travailler en local :
+
 ```bash
 npm install
-cp .env.example .env      # puis ajuster AUTH_SECRET
-npm run db:migrate        # crée la base SQLite et applique le schéma
-npm run db:seed           # jeu de données de démonstration
+npx vercel env pull .env.local
 npm run dev
+```
+
+Pour un bac à sable séparé des vraies données, créez une seconde base dans
+Vercel et mettez ses valeurs dans `.env.local`, puis :
+
+```bash
+npm run db:migrate
+npm run db:seed
 ```
 
 L'application est disponible sur http://localhost:3000.
 
-### Comptes de test (créés par le seed)
+### Comptes de test (uniquement dans le jeu de démonstration)
 
 | Email               | Mot de passe |
 | ------------------- | ------------ |
 | `robin@agence.fr`   | `demo1234`   |
 | `camille@agence.fr` | `demo1234`   |
 
-Il n'y a pas d'inscription : les comptes se créent dans `prisma/seed.ts`.
+En production, il n'y a pas de seed : au premier lancement, l'application
+affiche une page d'installation pour créer le premier compte, puis tout se passe
+depuis l'écran **Équipe**.
+
+`npm run db:seed` **efface la base** avant de réinjecter le jeu de démonstration.
+Il refuse de s'exécuter si la base contient déjà des données — pour forcer,
+`SEED_FORCE=1`.
 
 ## Commandes
 
@@ -54,37 +71,34 @@ Il n'y a pas d'inscription : les comptes se créent dans `prisma/seed.ts`.
 | `npm run db:seed`    | Réinjecte le jeu de données de démonstration        |
 | `npm run db:reset`   | Remet la base à zéro, rejoue migrations **et** seed |
 | `npm run db:studio`  | Prisma Studio, pour inspecter la base               |
-| `npm run utilisateur`| Crée ou met à jour un compte (voir ci-dessous)      |
+| `npm run utilisateur`| Secours : recrée ou réinitialise un compte           |
 
 ### Ouvrir un compte à quelqu'un
 
-Il n'y a pas d'inscription publique : c'est un outil interne, les comptes se
-créent en ligne de commande.
+Depuis l'application, écran **Équipe** (votre nom en bas de la barre latérale).
+La section « Ajouter quelqu'un » génère un mot de passe solide qu'il suffit de
+transmettre. Aucune inscription publique : c'est le seul chemin pour ouvrir un
+accès.
 
-```bash
-npm run utilisateur -- "Léa" lea@agence.fr
-```
-
-Un mot de passe solide est tiré au sort et affiché une seule fois. Pour le
-changer plus tard, relancez la même commande avec le même email en ajoutant le
-nouveau mot de passe. Pour créer un compte sur la base en ligne, voir
-[DEPLOIEMENT.md](DEPLOIEMENT.md).
+Le script `npm run utilisateur -- "Léa" lea@agence.fr` reste là pour un seul cas :
+si plus personne ne peut se connecter.
 
 ## Stack
 
-Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · shadcn/ui · Prisma
-(SQLite en développement) · Auth.js v5 · Recharts · dnd-kit.
+Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · shadcn/ui · Prisma +
+PostgreSQL · Auth.js v5 · Recharts · dnd-kit.
 
 Les mutations passent par des Server Actions ; la seule route d'API est celle
 d'Auth.js.
 
 ## Choix d'implémentation utiles à connaître
 
-**Statuts en `String`, pas en `enum` Prisma.** SQLite ne supporte pas les enums
-Prisma. Les valeurs autorisées (`PROSPECT`, `A_FAIRE`, `ACCEPTEE`…) sont
-centralisées dans `src/lib/constantes.ts` avec leur libellé français et leur
-couleur de badge, et validées par Zod avant écriture. Le schéma reste ainsi
-directement compatible PostgreSQL.
+**Statuts en `String`, pas en `enum` Prisma.** Choix hérité du démarrage sur
+SQLite, qui ne supporte pas les enums Prisma — et conservé depuis le passage à
+PostgreSQL : ajouter un statut ne demande aucune migration. Les valeurs
+autorisées (`PROSPECT`, `A_FAIRE`, `ACCEPTEE`…) sont centralisées dans
+`src/lib/constantes.ts` avec leur libellé français et leur couleur de badge, et
+validées par Zod avant écriture.
 
 **Montants en centimes.** Tous les champs monétaires sont des `Int` en centimes
 (`montantHTCents`). Cela évite les arrondis flottants sur les calculs de TVA et
@@ -101,7 +115,15 @@ et tout l'affichage passent par `src/lib/dates.ts`.
 **Protection des pages.** `src/middleware.ts` ne fait qu'un pré-filtrage rapide
 sur la présence du cookie de session (le runtime Edge n'a pas accès à la base).
 La vérification qui fait foi est `utilisateurRequis()` dans
-`src/app/(app)/layout.tsx`.
+`src/app/(app)/layout.tsx` : elle revalide le compte en base à chaque requête,
+de sorte que retirer un accès le coupe immédiatement au lieu d'attendre
+l'expiration de la session.
+
+**Pas d'inscription publique.** La page `/installation` n'existe que tant que la
+base ne contient aucun compte ; elle crée le premier et se ferme définitivement.
+Les suivants s'ajoutent depuis l'écran **Équipe**. Un accès se retire en
+désactivant le compte (`User.actif`), pas en le supprimant : l'historique reste
+attribué à son auteur.
 
 **Prospection et clients ne font qu'un.** Une fiche créée depuis l'écran de
 prospection est un `Client` au statut « prospect » : pas de carnet d'adresses
@@ -111,9 +133,9 @@ quand une date est donnée.
 
 ## Déploiement
 
-Voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)** : Vercel + Supabase, variables
-d'environnement, migration vers PostgreSQL et création des comptes de l'équipe,
-étape par étape.
+Voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)** : quatre étapes sur Vercel, base
+PostgreSQL créée depuis le tableau de bord, migrations appliquées
+automatiquement à chaque déploiement.
 
 ## Structure
 

@@ -50,9 +50,14 @@ export async function listerTaches(filtres: FiltresTaches) {
   return { colonnes, total: taches.length };
 }
 
+/**
+ * Membres proposés dans les listes d'affectation. Les comptes dont l'accès a
+ * été retiré restent proposés, en fin de liste et signalés : sinon, éditer une
+ * tâche qui leur est assignée la réattribuerait silencieusement.
+ */
 export async function equipe() {
   return prisma.user.findMany({
-    select: { id: true, nom: true, couleur: true },
-    orderBy: { nom: "asc" },
+    select: { id: true, nom: true, couleur: true, actif: true },
+    orderBy: [{ actif: "desc" }, { nom: "asc" }],
   });
 }

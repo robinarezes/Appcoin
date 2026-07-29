@@ -141,6 +141,56 @@ export const schemaOffre = z.object({
   statut: parmi(CLES_STATUT_OFFRE as unknown as [string, ...string[]], "Statut inconnu."),
 });
 
+// --- Comptes de l'équipe ---
+
+const motDePasse = z
+  .string()
+  .min(8, "Le mot de passe doit faire au moins 8 caractères.");
+
+export const schemaNouveauCompte = z
+  .object({
+    nom: z.string().trim().min(1, "Le prénom est obligatoire."),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Adresse email invalide."),
+    motDePasse,
+    confirmation: z.string(),
+    couleur: optionnel,
+  })
+  .refine((v) => v.motDePasse === v.confirmation, {
+    message: "Les deux mots de passe ne correspondent pas.",
+    path: ["confirmation"],
+  });
+
+export const schemaMembre = z.object({
+  nom: z.string().trim().min(1, "Le prénom est obligatoire."),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Adresse email invalide."),
+  motDePasse,
+  couleur: optionnel,
+});
+
+export const schemaChangementMotDePasse = z
+  .object({
+    utilisateurId: z.string().min(1),
+    motDePasse,
+    confirmation: z.string(),
+  })
+  .refine((v) => v.motDePasse === v.confirmation, {
+    message: "Les deux mots de passe ne correspondent pas.",
+    path: ["confirmation"],
+  });
+
+export const schemaProfil = z.object({
+  nom: z.string().trim().min(1, "Le prénom est obligatoire."),
+  couleur: z.string().trim().min(1),
+});
+
 // --- Prospection téléphonique ---
 
 export const schemaFicheAppel = z.object({

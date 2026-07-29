@@ -13,17 +13,13 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+  // Connexion mutualisée : c'est celle qu'utilise l'application.
+  url       = env("DATABASE_URL")
+  // Connexion directe : les migrations ont besoin de verrous que la connexion
+  // mutualisée ne transmet pas. Voir DEPLOIEMENT.md.
+  directUrl = env("DIRECT_URL")
 }
-
-// Pour passer en production (voir DEPLOIEMENT.md), remplacer le bloc ci-dessus par :
-//
-// datasource db {
-//   provider  = "postgresql"
-//   url       = env("DATABASE_URL") // pooler Supabase, port 6543 : l'application
-//   directUrl = env("DIRECT_URL")   // session Supabase, port 5432 : les migrations
-// }
 
 model User {
   id           String   @id @default(cuid())
@@ -31,6 +27,9 @@ model User {
   email        String   @unique
   passwordHash String
   couleur      String   @default("#2563eb") // code couleur dans le calendrier
+  // On retire un accès en désactivant le compte plutôt qu'en le supprimant :
+  // l'historique (notes, rendez-vous, appels) reste attribué à son auteur.
+  actif        Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   notes           Note[]

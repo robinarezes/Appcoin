@@ -11,9 +11,18 @@ const COOKIES_SESSION = [
   "__Secure-authjs.session-token",
 ];
 
+/** Pages accessibles sans session. */
+const PUBLIQUES = ["/login", "/installation"];
+
 export function middleware(request: NextRequest) {
   const connecte = COOKIES_SESSION.some((nom) => request.cookies.has(nom));
   const { pathname, search } = request.nextUrl;
+
+  if (PUBLIQUES.includes(pathname)) {
+    // La page d'installation décide elle-même si elle a encore lieu d'être :
+    // elle a besoin de la base, ce que le runtime Edge ne peut pas faire ici.
+    if (pathname === "/installation") return NextResponse.next();
+  }
 
   if (!connecte && pathname !== "/login") {
     const url = new URL("/login", request.url);

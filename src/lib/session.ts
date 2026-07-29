@@ -26,11 +26,16 @@ export async function utilisateurRequis(): Promise<UtilisateurConnecte> {
 
   const utilisateur = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, nom: true, email: true, couleur: true },
+    select: { id: true, nom: true, email: true, couleur: true, actif: true },
   });
   // Le paramètre évite la boucle avec le middleware : le cookie est encore là,
-  // mais le compte derrière n'existe plus.
-  if (!utilisateur) redirect("/login?session=expiree");
+  // mais le compte derrière n'existe plus ou a été désactivé.
+  if (!utilisateur || !utilisateur.actif) redirect("/login?session=expiree");
 
-  return utilisateur;
+  return {
+    id: utilisateur.id,
+    nom: utilisateur.nom,
+    email: utilisateur.email,
+    couleur: utilisateur.couleur,
+  };
 }

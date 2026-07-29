@@ -36,7 +36,7 @@ export function FormulaireRendezVous({
   action: (precedent: EtatFormulaire, donnees: FormData) => Promise<EtatFormulaire>;
   rdv?: RendezVousFormulaire;
   clients: { id: string; entreprise: string }[];
-  membres: { id: string; nom: string; couleur: string }[];
+  membres: { id: string; nom: string; couleur: string; actif: boolean }[];
   retour: string;
   valeursParDefaut?: { dateDebut: string; dateFin: string; clientId?: string; participantId: string };
 }) {
@@ -127,7 +127,7 @@ export function FormulaireRendezVous({
             >
               {membres.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.nom}
+                  {m.actif ? m.nom : `${m.nom} (accès retiré)`}
                 </option>
               ))}
             </SelectNatif>

@@ -41,7 +41,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const utilisateur = await prisma.user.findUnique({
           where: { email: parsed.data.email.toLowerCase().trim() },
         });
-        if (!utilisateur) return null;
+        // Un compte désactivé ne peut plus ouvrir de session.
+        if (!utilisateur || !utilisateur.actif) return null;
 
         const valide = await compare(parsed.data.motDePasse, utilisateur.passwordHash);
         if (!valide) return null;

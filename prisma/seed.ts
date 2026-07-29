@@ -385,6 +385,30 @@ const CLIENTS: ClientSeed[] = [
 ];
 
 async function main() {
+  // Garde-fou : le seed efface tout avant de réinjecter. Depuis que la base de
+  // développement et celle de production peuvent être la même chaîne de
+  // connexion, une faute de frappe suffirait à perdre les vraies données.
+  const [comptes, clients] = await Promise.all([
+    prisma.user.count(),
+    prisma.client.count(),
+  ]);
+
+  if ((comptes > 0 || clients > 0) && process.env.SEED_FORCE !== "1") {
+    console.error(
+      [
+        "",
+        `La base contient déjà des données (${comptes} compte(s), ${clients} client(s)).`,
+        "Le seed les effacerait toutes, il s'arrête donc ici.",
+        "",
+        "Si c'est bien ce que vous voulez :",
+        '  PowerShell : $env:SEED_FORCE="1"; npm run db:seed',
+        "  macOS/Linux : SEED_FORCE=1 npm run db:seed",
+        "",
+      ].join("\n"),
+    );
+    process.exit(1);
+  }
+
   console.log("Nettoyage de la base…");
   await prisma.ligneOffre.deleteMany();
   await prisma.facture.deleteMany();

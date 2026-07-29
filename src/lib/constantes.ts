@@ -301,6 +301,22 @@ export function classeBadge<T extends Record<string, Entree>>(map: T, cle: strin
   return map[cle]?.classe ?? "bg-muted text-muted-foreground ring-1 ring-inset ring-border";
 }
 
+/**
+ * Couleurs de repère de l'équipe : c'est ce qui permet de voir d'un coup d'œil
+ * qui va à quel rendez-vous. Choisies pour rester distinctes entre elles et
+ * lisibles sur fond clair comme sur fond sombre.
+ */
+export const COULEURS_EQUIPE = [
+  { valeur: "#2563eb", nom: "Bleu" },
+  { valeur: "#c026d3", nom: "Fuchsia" },
+  { valeur: "#059669", nom: "Vert" },
+  { valeur: "#ea580c", nom: "Orange" },
+  { valeur: "#7c3aed", nom: "Violet" },
+  { valeur: "#0891b2", nom: "Cyan" },
+  { valeur: "#be123c", nom: "Framboise" },
+  { valeur: "#4d7c0f", nom: "Olive" },
+] as const;
+
 /** TVA par défaut, en points de base (2000 = 20,00 %). */
 export const TVA_PAR_DEFAUT = 2000;
 

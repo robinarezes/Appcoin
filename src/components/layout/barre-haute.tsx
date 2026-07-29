@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { LogOutIcon, MenuIcon } from "lucide-react";
 
 import { deconnexion } from "@/actions/auth";
@@ -32,6 +33,15 @@ export function BarreHaute({ utilisateur }: { utilisateur: UtilisateurConnecte }
           </div>
           <div className="p-3">
             <LiensNavigation onNavigation={() => setMenuOuvert(false)} />
+
+            <Link
+              href="/equipe"
+              onClick={() => setMenuOuvert(false)}
+              className="mt-3 flex items-center gap-2.5 border-t px-2.5 pt-4 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              <PastilleUtilisateur utilisateur={utilisateur} className="size-7 text-[10px]" />
+              {utilisateur.nom} — mon profil et l&apos;équipe
+            </Link>
           </div>
         </SheetContent>
       </Sheet>

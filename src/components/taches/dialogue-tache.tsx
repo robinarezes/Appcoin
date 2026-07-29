@@ -26,7 +26,7 @@ import type { TacheKanban } from "@/lib/requetes/taches";
 import { ETAT_INITIAL } from "@/lib/validations";
 
 export type OptionClient = { id: string; entreprise: string };
-export type Membre = { id: string; nom: string; couleur: string };
+export type Membre = { id: string; nom: string; couleur: string; actif: boolean };
 
 export function DialogueTache({
   ouvert,
@@ -120,7 +120,7 @@ export function DialogueTache({
               >
                 {membres.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.nom}
+                    {m.actif ? m.nom : `${m.nom} (accès retiré)`}
                   </option>
                 ))}
               </SelectNatif>

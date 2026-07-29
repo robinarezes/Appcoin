@@ -1,14 +1,26 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { baseVierge } from "@/lib/requetes/equipe";
 
 import { FormulaireConnexion } from "./formulaire-connexion";
 
 export const metadata: Metadata = { title: "Connexion" };
+
+// La page vérifie à chaque visite si un compte existe (pour rediriger vers
+// l'installation au premier lancement) : elle ne peut pas être pré-générée,
+// sinon la réponse serait figée au moment du build.
+export const dynamic = "force-dynamic";
 
 export default async function PageConnexion({
   searchParams,
 }: {
   searchParams: Promise<{ suite?: string; session?: string }>;
 }) {
+  // Première mise en ligne : aucun compte n'existe encore, on envoie sur
+  // l'installation plutôt que d'afficher un formulaire impossible à remplir.
+  if (await baseVierge()) redirect("/installation");
+
   const { suite, session } = await searchParams;
 
   return (
