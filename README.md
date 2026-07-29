@@ -111,7 +111,7 @@ quand une date est donnée.
 
 ## Déploiement
 
-Voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)** : Vercel + Neon, variables
+Voir **[DEPLOIEMENT.md](DEPLOIEMENT.md)** : Vercel + Supabase, variables
 d'environnement, migration vers PostgreSQL et création des comptes de l'équipe,
 étape par étape.
 

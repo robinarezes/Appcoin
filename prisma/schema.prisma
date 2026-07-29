@@ -3,7 +3,7 @@
 // SQLite ne supporte pas les `enum` Prisma : tous les statuts sont des `String`
 // dont les valeurs autorisées sont définies dans src/lib/constantes.ts et
 // validées par Zod avant écriture. Le schéma reste ainsi compatible PostgreSQL
-// (Vercel + Neon) sans changer une ligne de code applicatif.
+// (Vercel + Supabase) sans changer une ligne de code applicatif.
 //
 // Les montants sont stockés en CENTIMES (Int) : arithmétique exacte, et
 // sérialisable entre Server et Client Components (contrairement à Decimal).
@@ -16,6 +16,14 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+// Pour passer en production (voir DEPLOIEMENT.md), remplacer le bloc ci-dessus par :
+//
+// datasource db {
+//   provider  = "postgresql"
+//   url       = env("DATABASE_URL") // pooler Supabase, port 6543 : l'application
+//   directUrl = env("DIRECT_URL")   // session Supabase, port 5432 : les migrations
+// }
 
 model User {
   id           String   @id @default(cuid())
