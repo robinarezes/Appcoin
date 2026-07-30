@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { PhoneOffIcon } from "lucide-react";
+import { PhoneOffIcon, UploadIcon } from "lucide-react";
 
 import { EnTetePage } from "@/components/commun/en-tete-page";
 import { EtatVide } from "@/components/commun/etat-vide";
+import { Button } from "@/components/ui/button";
 import { AjoutFiche } from "@/components/prospection/ajout-fiche";
 import { CarteProspect } from "@/components/prospection/carte-prospect";
 import { bilanDuJour, listerProspection, type FiltreProspection } from "@/lib/requetes/prospection";
@@ -13,7 +14,8 @@ export const metadata = { title: "Prospection" };
 
 const FILTRES: { cle: FiltreProspection; label: string }[] = [
   { cle: "a_appeler", label: "À appeler" },
-  { cle: "rappels", label: "Rappels du jour" },
+  { cle: "rappels", label: "À rappeler" },
+  { cle: "potentiels", label: "Potentiels clients" },
   { cle: "tous", label: "Toutes les fiches" },
 ];
 
@@ -38,7 +40,12 @@ export default async function PageProspection({
       <EnTetePage
         titre="Prospection téléphonique"
         description="Ajoutez une boutique et son numéro, appelez, notez le résultat. Chaque fiche devient un prospect dans les clients."
-      />
+      >
+        <Button variant="outline" size="sm" render={<Link href="/prospection/importer" />}>
+          <UploadIcon />
+          Importer une liste
+        </Button>
+      </EnTetePage>
 
       {bilan.total > 0 && (
         <div className="mb-4 flex flex-wrap gap-x-6 gap-y-1 rounded-xl border bg-background px-4 py-3 text-sm">
@@ -86,7 +93,9 @@ export default async function PageProspection({
                 ? compteurs.aAppeler
                 : f.cle === "rappels"
                   ? compteurs.rappels
-                  : compteurs.tous}
+                  : f.cle === "potentiels"
+                    ? compteurs.potentiels
+                    : compteurs.tous}
             </span>
           </Link>
         ))}
@@ -103,7 +112,11 @@ export default async function PageProspection({
           description={
             filtre === "a_appeler"
               ? "Ajoutez une boutique avec son numéro ci-dessus pour commencer une session d'appels."
-              : "Les rappels apparaissent ici le jour prévu."
+              : filtre === "potentiels"
+                ? "Marquez un appel « Intéressé » et la fiche apparaîtra ici avec sa note."
+                : filtre === "rappels"
+                  ? "Marquez un appel « À rappeler » avec une date, et la fiche apparaîtra ici le moment venu."
+                  : "Importez une liste ou ajoutez une boutique ci-dessus."
           }
         />
       ) : (

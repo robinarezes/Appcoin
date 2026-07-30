@@ -11,30 +11,32 @@ import {
 } from "recharts";
 
 import { formatEuros, formatEurosCompact } from "@/lib/format";
-import type { PointMensuel } from "@/lib/requetes/ca";
+import type { PointMensuel } from "@/lib/requetes/finances";
 
-type Serie = { cle: "factureCents" | "encaisseCents"; libelle: string; couleur: string };
+type CleSerie = "entreesCents" | "sortiesCents";
+type Serie = { cle: CleSerie; libelle: string; couleur: string };
 
-const SERIES: Record<Serie["cle"], Serie> = {
-  factureCents: { cle: "factureCents", libelle: "Facturé", couleur: "var(--viz-1)" },
-  encaisseCents: { cle: "encaisseCents", libelle: "Encaissé", couleur: "var(--viz-2)" },
+const SERIES: Record<CleSerie, Serie> = {
+  entreesCents: { cle: "entreesCents", libelle: "Encaissé", couleur: "var(--viz-1)" },
+  sortiesCents: { cle: "sortiesCents", libelle: "Dépensé", couleur: "var(--viz-2)" },
 };
 
 /**
- * Chiffre d'affaires mensuel en barres. Une seule série sur le tableau de bord,
- * deux sur la page CA (facturé vs encaissé) — jamais deux échelles d'axe.
+ * Chiffre d'affaires mensuel en barres : encaissements et dépenses côte à
+ * côte, sur une seule échelle. Les couleurs suivent le thème via les
+ * variables --viz-* (validées pour le daltonisme et le contraste).
  */
 export function GraphiqueCA({
   donnees,
-  series = ["factureCents", "encaisseCents"],
+  series = ["entreesCents", "sortiesCents"],
   hauteur = 260,
 }: {
   donnees: PointMensuel[];
-  series?: Serie["cle"][];
+  series?: CleSerie[];
   hauteur?: number;
 }) {
   const choisies = series.map((cle) => SERIES[cle]);
-  const vide = donnees.every((d) => d.factureCents === 0 && d.encaisseCents === 0);
+  const vide = donnees.every((d) => d.entreesCents === 0 && d.sortiesCents === 0);
 
   if (vide) {
     return (
@@ -42,7 +44,7 @@ export function GraphiqueCA({
         style={{ height: hauteur }}
         className="flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground"
       >
-        Aucune facture sur la période.
+        Aucun mouvement sur la période.
       </div>
     );
   }
@@ -52,13 +54,16 @@ export function GraphiqueCA({
       {choisies.length > 1 && (
         <div className="mb-2 flex flex-wrap items-center gap-4">
           {choisies.map((serie) => (
-            <span key={serie.cle} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span
+              key={serie.cle}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            >
               <span
                 aria-hidden
                 className="size-2.5 rounded-[3px]"
                 style={{ backgroundColor: serie.couleur }}
               />
-              {serie.libelle} (HT)
+              {serie.libelle}
             </span>
           ))}
         </div>

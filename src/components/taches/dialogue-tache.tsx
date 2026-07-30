@@ -80,7 +80,7 @@ export function DialogueTache({
               id="titre"
               name="titre"
               defaultValue={tache?.titre ?? ""}
-              placeholder="Relancer la facture…"
+              placeholder="Relancer le client, préparer la maquette…"
               required
               autoFocus
             />

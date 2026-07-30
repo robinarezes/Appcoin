@@ -4,7 +4,7 @@
  * Objectif : que l'application soit immédiatement lisible au premier lancement
  * — des clients à tous les stades, des rendez-vous passés et à venir, des
  * tâches dans les trois colonnes (dont des retards) et huit mois d'offres et
- * de factures pour que les graphiques aient quelque chose à montrer.
+ * de mouvements financiers pour que les graphiques aient quelque chose à montrer.
  *
  * Les dates sont relatives à aujourd'hui : le seed reste pertinent dans six
  * mois. Comme partout dans l'application, elles sont écrites en « heure murale »
@@ -72,7 +72,11 @@ type OffreSeed = {
   /** Mois de création, en nombre de mois avant aujourd'hui. */
   moisAvant: number;
   jourDuMois?: number;
-  /** Facture générée depuis l'offre : délai après la réponse et état du paiement. */
+  /**
+   * Encaissement lié à l'offre : jours entre la réponse et l'envoi de la
+   * demande de règlement, puis jours avant le paiement effectif (null = pas
+   * encore payé, donc aucun mouvement financier créé).
+   */
   facture?: { jourApresReponse: number; paiementJourApresEmission: number | null };
 };
 
@@ -411,7 +415,7 @@ async function main() {
 
   console.log("Nettoyage de la base…");
   await prisma.ligneOffre.deleteMany();
-  await prisma.facture.deleteMany();
+  await prisma.mouvementFinancier.deleteMany();
   await prisma.offre.deleteMany();
   await prisma.tache.deleteMany();
   await prisma.rendezVous.deleteMany();
@@ -475,20 +479,20 @@ async function main() {
 
   console.log(`${CLIENTS.length} clients créés`);
 
-  // --- Offres, lignes et factures ---
+  // --- Offres, lignes et encaissements ---
   // On numérote dans l'ordre chronologique pour que OFF-2026-001 soit bien la
   // première offre de l'année.
 
   const offresAPlat = CLIENTS.flatMap((c) =>
     c.offres.map((o) => ({
       offre: o,
+      entreprise: c.entreprise,
       clientId: idsClients.get(c.entreprise)!,
       date: mois(o.moisAvant, o.jourDuMois ?? 12, 9),
     })),
   ).sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const compteurOffres = new Map<number, number>();
-  const compteurFactures = new Map<number, number>();
 
   const numeroter = (prefixe: string, d: Date, compteur: Map<number, number>) => {
     const annee = d.getUTCFullYear();
@@ -497,16 +501,9 @@ async function main() {
     return `${prefixe}-${annee}-${String(n).padStart(3, "0")}`;
   };
 
-  const facturesACreer: {
-    clientId: string;
-    offreId: string;
-    montantHTCents: number;
-    montantTTCCents: number;
-    dateEmission: Date;
-    datePaiement: Date | null;
-  }[] = [];
+  const mouvements: { date: Date; libelle: string; montantCents: number; type: string }[] = [];
 
-  for (const { offre, clientId, date } of offresAPlat) {
+  for (const { offre, entreprise, clientId, date } of offresAPlat) {
     const montantHTCents = offre.lignes.reduce(
       (total, l) => total + euros(l.prixUnitaireHT) * l.quantite,
       0,
@@ -518,7 +515,7 @@ async function main() {
         ? ajouterJours(date, 8)
         : null;
 
-    const creee = await prisma.offre.create({
+    await prisma.offre.create({
       data: {
         numero: numeroter("OFF", date, compteurOffres),
         clientId,
@@ -542,45 +539,50 @@ async function main() {
       },
     });
 
-    if (offre.facture && dateReponse) {
-      const dateEmission = ajouterJours(dateReponse, offre.facture.jourApresReponse);
-      facturesACreer.push({
-        clientId,
-        offreId: creee.id,
-        montantHTCents,
-        montantTTCCents: ttc(montantHTCents),
-        dateEmission,
-        datePaiement:
-          offre.facture.paiementJourApresEmission === null
-            ? null
-            : ajouterJours(dateEmission, offre.facture.paiementJourApresEmission),
+    // L'argent réellement encaissé pour cette offre devient un mouvement
+    // financier — c'est lui qui alimente le CA et le solde.
+    if (offre.facture && dateReponse && offre.facture.paiementJourApresEmission !== null) {
+      const datePaiement = ajouterJours(
+        dateReponse,
+        offre.facture.jourApresReponse + offre.facture.paiementJourApresEmission,
+      );
+      mouvements.push({
+        date: datePaiement,
+        libelle: `${offre.titre} — ${entreprise}`,
+        montantCents: montantHTCents,
+        type: "ENTREE",
       });
     }
   }
 
-  facturesACreer.sort((a, b) => a.dateEmission.getTime() - b.dateEmission.getTime());
+  // --- Dépenses récurrentes et ponctuelles, pour un solde réaliste ---
 
-  for (const f of facturesACreer) {
-    const dateEcheance = ajouterJours(f.dateEmission, 30);
-    const enRetard = f.datePaiement === null && dateEcheance < AUJOURD_HUI;
-    await prisma.facture.create({
-      data: {
-        numero: numeroter("FAC", f.dateEmission, compteurFactures),
-        offreId: f.offreId,
-        clientId: f.clientId,
-        montantHTCents: f.montantHTCents,
-        tauxTVA: TVA,
-        montantTTCCents: f.montantTTCCents,
-        dateEmission: f.dateEmission,
-        dateEcheance,
-        datePaiement: f.datePaiement,
-        statut: f.datePaiement ? "PAYEE" : enRetard ? "RETARD" : "EN_ATTENTE",
-        createdAt: f.dateEmission,
-      },
+  for (let decalage = 7; decalage >= 0; decalage--) {
+    mouvements.push({
+      date: mois(decalage, 2),
+      libelle: "Hébergement et noms de domaine",
+      montantCents: euros(38),
+      type: "SORTIE",
+    });
+    mouvements.push({
+      date: mois(decalage, 5),
+      libelle: "Abonnements logiciels (maquettes, photos)",
+      montantCents: euros(54),
+      type: "SORTIE",
     });
   }
+  mouvements.push(
+    { date: mois(6, 18), libelle: "Ordinateur portable reconditionné", montantCents: euros(720), type: "SORTIE" },
+    { date: mois(5, 25), libelle: "Cotisations URSSAF", montantCents: euros(430), type: "SORTIE" },
+    { date: mois(2, 25), libelle: "Cotisations URSSAF", montantCents: euros(510), type: "SORTIE" },
+    { date: mois(1, 9), libelle: "Salon des commerçants — stand", montantCents: euros(180), type: "SORTIE" },
+    { date: jour(-3), libelle: "Acompte site — Garage Kervella", montantCents: euros(600), type: "ENTREE" },
+  );
 
-  console.log(`${offresAPlat.length} offres et ${facturesACreer.length} factures créées`);
+  mouvements.sort((a, b) => a.date.getTime() - b.date.getTime());
+  await prisma.mouvementFinancier.createMany({ data: mouvements });
+
+  console.log(`${offresAPlat.length} offres et ${mouvements.length} mouvements financiers créés`);
 
   // --- Rendez-vous ---
 

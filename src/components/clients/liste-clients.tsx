@@ -1,10 +1,38 @@
 import Link from "next/link";
+import { PencilIcon } from "lucide-react";
 
+import { supprimerClient } from "@/actions/clients";
 import { BadgeStatut } from "@/components/commun/badge-statut";
+import { ConfirmationSuppression } from "@/components/commun/confirmation-suppression";
 import { LienTelephone } from "@/components/commun/liens-contact";
+import { Button } from "@/components/ui/button";
 import { STATUTS_CLIENT } from "@/lib/constantes";
 import { formatEuros } from "@/lib/format";
 import type { ClientListe } from "@/lib/requetes/clients";
+
+/** Modifier / supprimer, disponibles depuis la liste sans ouvrir la fiche. */
+function ActionsLigne({ client }: { client: ClientListe }) {
+  return (
+    <span className="flex items-center justify-end gap-1">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={`Modifier ${client.entreprise}`}
+        title="Modifier"
+        render={<Link href={`/clients/${client.id}/modifier`} />}
+      >
+        <PencilIcon />
+      </Button>
+      <ConfirmationSuppression
+        action={supprimerClient.bind(null, client.id)}
+        titre={`Supprimer ${client.entreprise} ?`}
+        description="La fiche, son journal, ses offres et ses appels seront supprimés définitivement."
+        variante="ghost"
+        iconeSeule
+      />
+    </span>
+  );
+}
 
 /**
  * Tableau dense au-dessus de `md`, cartes empilées en dessous : sur téléphone,
@@ -28,11 +56,14 @@ export function ListeClients({ clients }: { clients: ClientListe[] }) {
             </p>
             <div className="mt-2 flex items-center justify-between gap-3 text-sm">
               <LienTelephone numero={client.telephone} avecIcone />
-              {client.caEncaisseCents > 0 && (
-                <span className="tabular-nums text-muted-foreground">
-                  {formatEuros(client.caEncaisseCents)}
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                {client.caSigneCents > 0 && (
+                  <span className="tabular-nums text-muted-foreground">
+                    {formatEuros(client.caSigneCents)}
+                  </span>
+                )}
+                <ActionsLigne client={client} />
+              </span>
             </div>
           </li>
         ))}
@@ -47,14 +78,14 @@ export function ListeClients({ clients }: { clients: ClientListe[] }) {
               <th className="px-4 py-2.5 font-medium">Statut</th>
               <th className="px-4 py-2.5 font-medium">Ville</th>
               <th className="px-4 py-2.5 font-medium">Téléphone</th>
-              <th className="px-4 py-2.5 text-right font-medium">CA encaissé</th>
-              <th className="px-4 py-2.5 text-right font-medium">Reste dû</th>
+              <th className="px-4 py-2.5 text-right font-medium">CA signé</th>
+              <th className="px-4 py-2.5" />
             </tr>
           </thead>
           <tbody>
             {clients.map((client) => (
               <tr key={client.id} className="border-b last:border-0 hover:bg-muted/40">
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2">
                   <Link href={`/clients/${client.id}`} className="font-medium hover:underline">
                     {client.entreprise}
                   </Link>
@@ -64,28 +95,22 @@ export function ListeClients({ clients }: { clients: ClientListe[] }) {
                     </p>
                   )}
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2">
                   <BadgeStatut map={STATUTS_CLIENT} valeur={client.statut} />
                 </td>
-                <td className="px-4 py-2.5 text-muted-foreground">{client.ville ?? "—"}</td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2 text-muted-foreground">{client.ville ?? "—"}</td>
+                <td className="px-4 py-2">
                   <LienTelephone numero={client.telephone} className="text-muted-foreground" />
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums">
-                  {client.caEncaisseCents > 0 ? (
-                    formatEuros(client.caEncaisseCents)
+                <td className="px-4 py-2 text-right tabular-nums">
+                  {client.caSigneCents > 0 ? (
+                    formatEuros(client.caSigneCents)
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums">
-                  {client.montantDuCents > 0 ? (
-                    <span className="font-medium text-amber-700 dark:text-amber-400">
-                      {formatEuros(client.montantDuCents)}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
+                <td className="px-4 py-2">
+                  <ActionsLigne client={client} />
                 </td>
               </tr>
             ))}

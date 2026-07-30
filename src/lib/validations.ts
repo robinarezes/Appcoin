@@ -211,4 +211,23 @@ export const schemaCompteRenduAppel = z.object({
   note: optionnel,
   dureeSecondes: z.coerce.number().int().min(0).max(86_400).default(0),
   rappelLe: dateOptionnelle,
+  // Heure de rappel facultative ("14:30") — combinée à la date côté serveur.
+  rappelHeure: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .default(null)
+    .refine((v) => v === null || /^\d{2}:\d{2}$/.test(v), {
+      message: "Heure invalide.",
+    }),
+});
+
+// --- Finances ---
+
+export const schemaMouvement = z.object({
+  type: parmi(["ENTREE", "SORTIE"] as const, "Type inconnu."),
+  libelle: z.string().trim().min(1, "Écrivez à quoi correspond ce montant."),
+  montant: z.string().trim().min(1, "Le montant est obligatoire."),
+  date: z.string().trim().min(1, "La date est obligatoire."),
 });

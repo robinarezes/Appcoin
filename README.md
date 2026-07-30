@@ -1,7 +1,7 @@
 # Atelier — outil de gestion interne
 
 Mini-CRM de l'agence : prospection téléphonique, clients, rendez-vous, tâches,
-offres, factures et chiffre d'affaires. Des comptes nominatifs, des données
+offres et suivi du chiffre d'affaires. Des comptes nominatifs, des données
 partagées, pensé pour aller vite au quotidien plutôt que pour faire le tour de
 toutes les fonctionnalités possibles.
 
@@ -12,14 +12,13 @@ toutes les fonctionnalités possibles.
 
 | Écran            | À quoi il sert                                                                                                                    |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**    | CA du mois et variation, impayés, prospects actifs, offres en attente, graphique sur 12 mois, rendez-vous à 7 jours, mes tâches      |
-| **Prospection**  | Ajout d'une boutique + numéro, bouton d'appel, compte-rendu juste après (rendez-vous pris, intéressé, à rappeler…) avec notes        |
-| **Clients**      | Recherche et filtres, fiche avec coordonnées cliquables, journal, historique complet et CA généré                                    |
+| **Dashboard**    | Agenda des 7 prochains jours, mes tâches, dernières notes, puis CA du mois et argent de l'entreprise                                 |
+| **Prospection**  | Ajout ou import de boutiques + numéros, bouton d'appel, compte-rendu juste après, onglets à rappeler (avec heure) et potentiels      |
+| **Clients**      | Recherche et filtres, modification et suppression depuis la liste, fiche avec coordonnées cliquables, journal et CA signé            |
 | **Rendez-vous**  | Calendrier mensuel coloré par personne, vue liste, compte-rendu après coup                                                          |
 | **Tâches**       | Kanban à trois colonnes, glisser-déposer, ajout en une ligne                                                                         |
-| **Offres**       | Lignes avec totaux HT/TVA/TTC, statuts, conversion en facture                                                                       |
-| **Factures**     | Suivi des règlements et des retards                                                                                                 |
-| **CA**           | Facturé vs encaissé par mois, top clients, secteurs, taux de transformation, impayés                                                |
+| **Offres**       | Lignes avec totaux HT/TVA/TTC, statuts en un clic                                                                                    |
+| **CA**           | Saisie simple des encaissements et dépenses, solde de l'entreprise, graphique mois par mois                                          |
 | **Équipe**       | Ajouter un compte, changer un mot de passe, sa couleur, retirer ou rendre un accès                                                  |
 
 ## Démarrage

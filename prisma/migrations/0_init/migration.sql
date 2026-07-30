@@ -126,21 +126,15 @@ CREATE TABLE "LigneOffre" (
 );
 
 -- CreateTable
-CREATE TABLE "Facture" (
+CREATE TABLE "MouvementFinancier" (
     "id" TEXT NOT NULL,
-    "numero" TEXT NOT NULL,
-    "offreId" TEXT,
-    "clientId" TEXT NOT NULL,
-    "montantHTCents" INTEGER NOT NULL,
-    "tauxTVA" INTEGER NOT NULL DEFAULT 2000,
-    "montantTTCCents" INTEGER NOT NULL,
-    "dateEmission" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "dateEcheance" TIMESTAMP(3) NOT NULL,
-    "datePaiement" TIMESTAMP(3),
-    "statut" TEXT NOT NULL DEFAULT 'EN_ATTENTE',
+    "date" TIMESTAMP(3) NOT NULL,
+    "libelle" TEXT NOT NULL,
+    "montantCents" INTEGER NOT NULL,
+    "type" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Facture_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "MouvementFinancier_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -189,13 +183,7 @@ CREATE INDEX "Offre_statut_idx" ON "Offre"("statut");
 CREATE INDEX "LigneOffre_offreId_idx" ON "LigneOffre"("offreId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Facture_numero_key" ON "Facture"("numero");
-
--- CreateIndex
-CREATE INDEX "Facture_clientId_idx" ON "Facture"("clientId");
-
--- CreateIndex
-CREATE INDEX "Facture_statut_dateEcheance_idx" ON "Facture"("statut", "dateEcheance");
+CREATE INDEX "MouvementFinancier_date_idx" ON "MouvementFinancier"("date");
 
 -- AddForeignKey
 ALTER TABLE "Note" ADD CONSTRAINT "Note_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -229,10 +217,4 @@ ALTER TABLE "Offre" ADD CONSTRAINT "Offre_clientId_fkey" FOREIGN KEY ("clientId"
 
 -- AddForeignKey
 ALTER TABLE "LigneOffre" ADD CONSTRAINT "LigneOffre_offreId_fkey" FOREIGN KEY ("offreId") REFERENCES "Offre"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Facture" ADD CONSTRAINT "Facture_offreId_fkey" FOREIGN KEY ("offreId") REFERENCES "Offre"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Facture" ADD CONSTRAINT "Facture_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

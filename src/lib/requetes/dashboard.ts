@@ -1,60 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import {
-  ajouterJours,
-  ajouterMois,
-  debutDeJour,
-  debutDeMois,
-  finDeMois,
-  maintenant,
-} from "@/lib/dates";
-import { statutFacture } from "@/lib/metier";
+import { ajouterJours, debutDeJour, maintenant } from "@/lib/dates";
 
-/** CA facturé du mois en cours, et écart avec le mois précédent. */
-export async function caDuMois() {
-  const maintenantDate = maintenant();
-  const debutMois = debutDeMois(maintenantDate);
-  const finMois = finDeMois(maintenantDate);
-  const moisPrecedent = ajouterMois(maintenantDate, -1);
-
-  const [ceMois, precedent] = await Promise.all([
-    prisma.facture.aggregate({
-      where: { dateEmission: { gte: debutMois, lte: finMois } },
-      _sum: { montantHTCents: true },
-    }),
-    prisma.facture.aggregate({
-      where: {
-        dateEmission: { gte: debutDeMois(moisPrecedent), lte: finDeMois(moisPrecedent) },
-      },
-      _sum: { montantHTCents: true },
-    }),
-  ]);
-
-  const actuel = ceMois._sum.montantHTCents ?? 0;
-  const ancien = precedent._sum.montantHTCents ?? 0;
-
-  return {
-    actuelCents: actuel,
-    precedentCents: ancien,
-    // Sans mois précédent, une variation en pourcentage n'a pas de sens.
-    variation: ancien === 0 ? null : (actuel - ancien) / ancien,
-  };
-}
-
-export async function impayes() {
-  const factures = await prisma.facture.findMany({
-    where: { datePaiement: null },
-    select: { montantTTCCents: true, dateEcheance: true, datePaiement: true },
-  });
-
-  return {
-    totalCents: factures.reduce((somme, f) => somme + f.montantTTCCents, 0),
-    nombre: factures.length,
-    enRetardCents: factures
-      .filter((f) => statutFacture(f) === "RETARD")
-      .reduce((somme, f) => somme + f.montantTTCCents, 0),
-    nombreEnRetard: factures.filter((f) => statutFacture(f) === "RETARD").length,
-  };
-}
+export { caDuMois, soldeEntreprise } from "@/lib/requetes/finances";
 
 export async function prospectsActifs() {
   return prisma.client.count({
@@ -93,4 +40,16 @@ export async function offresEnAttente() {
     nombre: offres.length,
     montantCents: offres.reduce((somme, o) => somme + o.montantHTCents, 0),
   };
+}
+
+/** Les derniers échanges notés dans les journaux clients, tous clients confondus. */
+export async function dernieresNotes(limite = 5) {
+  return prisma.note.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limite,
+    include: {
+      client: { select: { id: true, entreprise: true } },
+      auteur: { select: { id: true, nom: true, couleur: true } },
+    },
+  });
 }

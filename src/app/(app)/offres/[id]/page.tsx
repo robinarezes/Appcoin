@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, PencilIcon, ReceiptIcon } from "lucide-react";
+import { ArrowLeftIcon, PencilIcon } from "lucide-react";
 
 import { supprimerOffre } from "@/actions/offres";
 import { BadgeStatut } from "@/components/commun/badge-statut";
@@ -73,11 +73,7 @@ export default async function PageFicheOffre({
       </div>
 
       <div className="mb-4 rounded-xl border bg-background p-4">
-        <ActionsOffre
-          id={offre.id}
-          statut={offre.statut}
-          dejaFacturee={offre.factures.length > 0}
-        />
+        <ActionsOffre id={offre.id} statut={offre.statut} />
       </div>
 
       <div className="grid gap-4">
@@ -154,27 +150,6 @@ export default async function PageFicheOffre({
               </dd>
             </div>
           </dl>
-
-          {offre.factures.length > 0 && (
-            <div className="mt-4 border-t pt-4">
-              <p className="mb-2 text-xs text-muted-foreground">Facture générée</p>
-              <ul className="grid gap-1.5">
-                {offre.factures.map((facture) => (
-                  <li key={facture.id} className="flex items-center gap-2 text-sm">
-                    <ReceiptIcon className="size-3.5 text-muted-foreground" />
-                    <Link href="/factures" className="font-mono hover:underline">
-                      {facture.numero}
-                    </Link>
-                    <span className="text-muted-foreground">
-                      {facture.datePaiement
-                        ? `payée le ${formatDate(facture.datePaiement)}`
-                        : `échéance le ${formatDate(facture.dateEcheance)}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </SectionFiche>
       </div>
     </div>

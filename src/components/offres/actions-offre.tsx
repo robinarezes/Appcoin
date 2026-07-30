@@ -1,34 +1,20 @@
 "use client";
 
 import { useTransition } from "react";
-import { CheckIcon, FileOutputIcon, SendIcon, UndoIcon, XIcon } from "lucide-react";
+import { CheckIcon, SendIcon, UndoIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { changerStatutOffre, convertirEnFacture } from "@/actions/offres";
+import { changerStatutOffre } from "@/actions/offres";
 import { Button } from "@/components/ui/button";
 
-/** Changement de statut en un clic, et conversion en facture le moment venu. */
-export function ActionsOffre({
-  id,
-  statut,
-  dejaFacturee,
-}: {
-  id: string;
-  statut: string;
-  dejaFacturee: boolean;
-}) {
+/** Changement de statut en un clic. */
+export function ActionsOffre({ id, statut }: { id: string; statut: string }) {
   const [enCours, demarrer] = useTransition();
 
   const changer = (nouveau: string, message: string) =>
     demarrer(async () => {
       await changerStatutOffre(id, nouveau);
       toast.success(message);
-    });
-
-  const convertir = () =>
-    demarrer(async () => {
-      const resultat = await convertirEnFacture(id);
-      if (resultat?.erreur) toast.error(resultat.erreur);
     });
 
   return (
@@ -55,13 +41,6 @@ export function ActionsOffre({
             Refusée
           </Button>
         </>
-      )}
-
-      {statut === "ACCEPTEE" && !dejaFacturee && (
-        <Button disabled={enCours} onClick={convertir}>
-          <FileOutputIcon />
-          Convertir en facture
-        </Button>
       )}
 
       {statut !== "BROUILLON" && (

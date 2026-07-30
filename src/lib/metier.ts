@@ -1,21 +1,5 @@
 import { debutDeJour, maintenant } from "@/lib/dates";
 
-/**
- * Le statut « RETARD » d'une facture est déduit, pas stocké : sans cela il
- * faudrait une tâche planifiée pour faire basculer les factures chaque nuit.
- */
-export function statutFacture(facture: {
-  datePaiement: Date | null;
-  dateEcheance: Date;
-}): "PAYEE" | "RETARD" | "EN_ATTENTE" {
-  if (facture.datePaiement) return "PAYEE";
-  return facture.dateEcheance < debutDeJour(maintenant()) ? "RETARD" : "EN_ATTENTE";
-}
-
-export function factureImpayee(facture: { datePaiement: Date | null }): boolean {
-  return facture.datePaiement === null;
-}
-
 /** Une tâche est en retard si elle a une échéance dépassée et n'est pas terminée. */
 export function tacheEnRetard(tache: {
   statut: string;

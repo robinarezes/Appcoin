@@ -8,7 +8,6 @@ import {
   LayoutDashboardIcon,
   ListChecksIcon,
   PhoneCallIcon,
-  ReceiptIcon,
   TrendingUpIcon,
   UsersIcon,
 } from "lucide-react";
@@ -22,7 +21,6 @@ export const LIENS = [
   { href: "/rendez-vous", label: "Rendez-vous", Icone: CalendarDaysIcon },
   { href: "/taches", label: "Tâches", Icone: ListChecksIcon },
   { href: "/offres", label: "Offres", Icone: FileTextIcon },
-  { href: "/factures", label: "Factures", Icone: ReceiptIcon },
   { href: "/ca", label: "Chiffre d'affaires", Icone: TrendingUpIcon },
 ] as const;
 

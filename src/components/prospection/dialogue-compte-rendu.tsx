@@ -133,18 +133,23 @@ export function DialogueCompteRendu({
           )}
 
           {resultat === "A_RAPPELER" && (
-            <Champ
-              id="rappelLe"
-              label="Rappeler le"
-              indication="Une tâche de rappel sera créée automatiquement."
-            >
-              <Input
+            <div className="grid grid-cols-[1fr_7rem] gap-3">
+              <Champ
                 id="rappelLe"
-                name="rappelLe"
-                type="date"
-                defaultValue={dansUneSemaine}
-              />
-            </Champ>
+                label="Rappeler le"
+                indication="Une tâche de rappel sera créée automatiquement."
+              >
+                <Input
+                  id="rappelLe"
+                  name="rappelLe"
+                  type="date"
+                  defaultValue={dansUneSemaine}
+                />
+              </Champ>
+              <Champ id="rappelHeure" label="À quelle heure" indication="Facultatif.">
+                <Input id="rappelHeure" name="rappelHeure" type="time" />
+              </Champ>
+            </div>
           )}
 
           <Champ

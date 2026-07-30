@@ -58,7 +58,6 @@ model Client {
   rendezVous RendezVous[]
   taches     Tache[]
   offres     Offre[]
-  factures   Facture[]
   appels     Appel[]
 
   @@index([statut])
@@ -157,9 +156,8 @@ model Offre {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  client   Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  lignes   LigneOffre[]
-  factures Facture[]
+  client Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lignes LigneOffre[]
 
   @@index([clientId])
   @@index([statut])
@@ -178,23 +176,16 @@ model LigneOffre {
   @@index([offreId])
 }
 
-model Facture {
-  id              String    @id @default(cuid())
-  numero          String    @unique // FAC-2026-001
-  offreId         String?
-  clientId        String
-  montantHTCents  Int
-  tauxTVA         Int       @default(2000)
-  montantTTCCents Int
-  dateEmission    DateTime  @default(now())
-  dateEcheance    DateTime
-  datePaiement    DateTime? // null = impayée
-  statut          String    @default("EN_ATTENTE") // EN_ATTENTE | PAYEE | RETARD (RETARD est dérivé à l'affichage)
-  createdAt       DateTime  @default(now())
+/// Le suivi financier est volontairement manuel : on note ce qui rentre
+/// (chiffre d'affaires) et ce qui sort (dépenses). Le solde cumulé des deux
+/// donne « l'argent de l'entreprise ». Pas de module de facturation.
+model MouvementFinancier {
+  id           String   @id @default(cuid())
+  date         DateTime
+  libelle      String
+  montantCents Int // toujours positif ; le sens est porté par `type`
+  type         String // ENTREE | SORTIE
+  createdAt    DateTime @default(now())
 
-  offre  Offre? @relation(fields: [offreId], references: [id], onDelete: SetNull)
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@index([clientId])
-  @@index([statut, dateEcheance])
+  @@index([date])
 }

@@ -20,17 +20,17 @@ export type ClientListe = {
   secteur: string | null;
   statut: string;
   createdAt: Date;
-  caEncaisseCents: number;
-  montantDuCents: number;
+  /** Total HT des offres acceptées : le « CA signé » avec ce client. */
+  caSigneCents: number;
 };
 
 /**
  * Liste des clients, filtrée et triée en mémoire.
  * Voir src/lib/recherche.ts pour le pourquoi : recherche insensible aux accents
- * et comportement identique sur SQLite et PostgreSQL.
+ * et comportement identique quelle que soit la base.
  */
 export async function listerClients(filtres: FiltresClients) {
-  const [clients, encaisse, du] = await Promise.all([
+  const [clients, offresAcceptees] = await Promise.all([
     prisma.client.findMany({
       select: {
         id: true,
@@ -44,33 +44,26 @@ export async function listerClients(filtres: FiltresClients) {
         createdAt: true,
       },
     }),
-    prisma.facture.groupBy({
+    prisma.offre.groupBy({
       by: ["clientId"],
-      where: { datePaiement: { not: null } },
+      where: { statut: "ACCEPTEE" },
       _sum: { montantHTCents: true },
-    }),
-    prisma.facture.groupBy({
-      by: ["clientId"],
-      where: { datePaiement: null },
-      _sum: { montantTTCCents: true },
     }),
   ]);
 
-  const parClientEncaisse = new Map(
-    encaisse.map((e) => [e.clientId, e._sum.montantHTCents ?? 0]),
+  const caParClient = new Map(
+    offresAcceptees.map((o) => [o.clientId, o._sum.montantHTCents ?? 0]),
   );
-  const parClientDu = new Map(du.map((e) => [e.clientId, e._sum.montantTTCCents ?? 0]));
 
   const enrichis: ClientListe[] = clients.map((c) => ({
     ...c,
-    caEncaisseCents: parClientEncaisse.get(c.id) ?? 0,
-    montantDuCents: parClientDu.get(c.id) ?? 0,
+    caSigneCents: caParClient.get(c.id) ?? 0,
   }));
 
   const recherche = filtres.recherche?.trim() ?? "";
   const chiffres = chiffresSeuls(recherche);
 
-  const filtres_appliques = enrichis.filter((c) => {
+  const filtresAppliques = enrichis.filter((c) => {
     if (filtres.statut && c.statut !== filtres.statut) return false;
     if (filtres.ville && normaliser(c.ville) !== normaliser(filtres.ville)) return false;
     if (!recherche) return true;
@@ -90,12 +83,12 @@ export async function listerClients(filtres: FiltresClients) {
   });
 
   const tri = filtres.tri ?? "entreprise";
-  filtres_appliques.sort((a, b) => {
+  filtresAppliques.sort((a, b) => {
     switch (tri) {
       case "recent":
         return b.createdAt.getTime() - a.createdAt.getTime();
       case "ca":
-        return b.caEncaisseCents - a.caEncaisseCents;
+        return b.caSigneCents - a.caSigneCents;
       case "ville":
         return (
           normaliser(a.ville).localeCompare(normaliser(b.ville)) ||
@@ -110,10 +103,10 @@ export async function listerClients(filtres: FiltresClients) {
     (a, b) => a.localeCompare(b, "fr"),
   );
 
-  return { clients: filtres_appliques, total: clients.length, villes };
+  return { clients: filtresAppliques, total: clients.length, villes };
 }
 
-/** Fiche complète : coordonnées, journal, rendez-vous, tâches, offres, factures. */
+/** Fiche complète : coordonnées, journal, rendez-vous, tâches, offres, appels. */
 export async function ficheClient(id: string) {
   const client = await prisma.client.findUnique({
     where: { id },
@@ -131,7 +124,6 @@ export async function ficheClient(id: string) {
         include: { assignee: { select: { id: true, nom: true, couleur: true } } },
       },
       offres: { orderBy: { createdAt: "desc" } },
-      factures: { orderBy: { dateEmission: "desc" } },
       appels: {
         orderBy: { createdAt: "desc" },
         include: { auteur: { select: { id: true, nom: true, couleur: true } } },
@@ -141,17 +133,11 @@ export async function ficheClient(id: string) {
 
   if (!client) return null;
 
-  const caEncaisseCents = client.factures
-    .filter((f) => f.datePaiement !== null)
-    .reduce((total, f) => total + f.montantHTCents, 0);
+  const caSigneCents = client.offres
+    .filter((o) => o.statut === "ACCEPTEE")
+    .reduce((total, o) => total + o.montantHTCents, 0);
 
-  const caFactureCents = client.factures.reduce((total, f) => total + f.montantHTCents, 0);
-
-  const montantDuCents = client.factures
-    .filter((f) => f.datePaiement === null)
-    .reduce((total, f) => total + f.montantTTCCents, 0);
-
-  return { client, caEncaisseCents, caFactureCents, montantDuCents };
+  return { client, caSigneCents };
 }
 
 /** Liste allégée pour les listes déroulantes (tâches, rendez-vous, offres). */

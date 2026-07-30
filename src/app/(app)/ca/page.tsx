@@ -1,28 +1,25 @@
 import Link from "next/link";
-import { AlertTriangleIcon } from "lucide-react";
 
-import { BadgeStatut } from "@/components/commun/badge-statut";
 import { EnTetePage } from "@/components/commun/en-tete-page";
 import { SectionFiche } from "@/components/commun/section-fiche";
 import { TuileStat } from "@/components/commun/tuile-stat";
-import { BarresRepartition } from "@/components/graphiques/barres-repartition";
+import { FormulaireMouvement } from "@/components/finances/formulaire-mouvement";
+import { ListeMouvements } from "@/components/finances/liste-mouvements";
 import { GraphiqueCA } from "@/components/graphiques/graphique-ca";
-import { STATUTS_FACTURE } from "@/lib/constantes";
-import { aujourdHui, differenceEnJours, formatDate, maintenant } from "@/lib/dates";
-import { formatEuros, formatPourcent } from "@/lib/format";
+import { maintenant } from "@/lib/dates";
+import { formatEuros } from "@/lib/format";
 import {
   anneesDisponibles,
-  caAnnee,
-  facturesImpayees,
-  repartitionAnnee,
-  transformationAnnee,
-} from "@/lib/requetes/ca";
+  listerMouvements,
+  mouvementsAnnee,
+  soldeEntreprise,
+} from "@/lib/requetes/finances";
 import { utilisateurRequis } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Chiffre d'affaires" };
 
-export default async function PageChiffreAffaires({
+export default async function PageFinances({
   searchParams,
 }: {
   searchParams: Promise<{ annee?: string }>;
@@ -32,23 +29,25 @@ export default async function PageChiffreAffaires({
 
   const annees = await anneesDisponibles();
   const demandee = Number(params.annee);
-  const annee = annees.includes(demandee) ? demandee : (annees[0] ?? maintenant().getUTCFullYear());
+  const annee = annees.includes(demandee)
+    ? demandee
+    : (annees[0] ?? maintenant().getUTCFullYear());
 
-  const [mensuel, repartition, transformation, impayees] = await Promise.all([
-    caAnnee(annee),
-    repartitionAnnee(annee),
-    transformationAnnee(annee),
-    facturesImpayees(),
+  const [mensuel, mouvements, solde] = await Promise.all([
+    mouvementsAnnee(annee),
+    listerMouvements(annee),
+    soldeEntreprise(),
   ]);
 
-  const factureCents = mensuel.reduce((somme, m) => somme + m.factureCents, 0);
-  const encaisseCents = mensuel.reduce((somme, m) => somme + m.encaisseCents, 0);
-  const impayeesCents = impayees.reduce((somme, f) => somme + f.montantTTCCents, 0);
-  const today = aujourdHui();
+  const caCents = mensuel.reduce((somme, m) => somme + m.entreesCents, 0);
+  const depensesCents = mensuel.reduce((somme, m) => somme + m.sortiesCents, 0);
 
   return (
     <>
-      <EnTetePage titre="Chiffre d'affaires" description={`Année ${annee}`}>
+      <EnTetePage
+        titre="Chiffre d'affaires"
+        description="Notez ce qui rentre et ce qui sort : le CA et l'argent de l'entreprise se calculent tout seuls."
+      >
         <div className="flex flex-wrap gap-1.5">
           {annees.map((a) => (
             <Link
@@ -67,141 +66,40 @@ export default async function PageChiffreAffaires({
         </div>
       </EnTetePage>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-3">
         <TuileStat
-          libelle={`CA facturé ${annee}`}
-          valeur={formatEuros(factureCents)}
-          precision="hors taxes"
+          libelle="Argent de l'entreprise"
+          valeur={formatEuros(solde)}
+          accent={solde < 0 ? "alerte" : "neutre"}
+          precision="solde de tous les mouvements"
         />
         <TuileStat
           libelle={`CA encaissé ${annee}`}
-          valeur={formatEuros(encaisseCents)}
-          precision={
-            factureCents > 0
-              ? `${formatPourcent(encaisseCents / factureCents)} du facturé`
-              : undefined
-          }
+          valeur={formatEuros(caCents)}
+          precision="total des encaissements de l'année"
         />
         <TuileStat
-          libelle="Taux de transformation"
-          valeur={transformation.taux === null ? "—" : formatPourcent(transformation.taux)}
-          precision={`${transformation.acceptees} acceptée${
-            transformation.acceptees > 1 ? "s" : ""
-          } sur ${transformation.envoyees} envoyée${transformation.envoyees > 1 ? "s" : ""}`}
-        />
-        <TuileStat
-          href="/factures"
-          libelle="Reste à encaisser"
-          valeur={formatEuros(impayeesCents)}
-          accent={impayees.some((f) => f.statutCalcule === "RETARD") ? "alerte" : "neutre"}
-          precision={`${impayees.length} facture${impayees.length > 1 ? "s" : ""} ouverte${
-            impayees.length > 1 ? "s" : ""
-          }`}
+          libelle={`Dépenses ${annee}`}
+          valeur={formatEuros(depensesCents)}
+          precision="total des sorties de l'année"
         />
       </div>
 
       <div className="mt-4">
-        <SectionFiche titre={`Facturé et encaissé mois par mois — ${annee}`}>
-          <GraphiqueCA donnees={mensuel} hauteur={300} />
-          <p className="mt-3 text-xs text-muted-foreground">
-            « Facturé » compte les factures à leur date d&apos;émission, « encaissé » à leur
-            date de paiement : l&apos;écart entre les deux, c&apos;est la trésorerie qui
-            arrive en retard.
-          </p>
-        </SectionFiche>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <SectionFiche titre="Top 5 clients">
-          <BarresRepartition
-            lignes={repartition.topClients.map((c) => ({
-              cle: c.id,
-              libelle: c.nom,
-              montantCents: c.montantCents,
-              href: `/clients/${c.id}`,
-            }))}
-            vide={`Aucune facture émise en ${annee}.`}
-          />
-        </SectionFiche>
-
-        <SectionFiche titre="Par secteur d'activité">
-          <BarresRepartition
-            lignes={repartition.secteurs.map((s) => ({
-              cle: s.nom,
-              libelle: s.nom,
-              montantCents: s.montantCents,
-            }))}
-            vide={`Aucune facture émise en ${annee}.`}
-          />
+        <SectionFiche titre="Noter un mouvement">
+          <FormulaireMouvement />
         </SectionFiche>
       </div>
 
       <div className="mt-4">
-        <SectionFiche titre="Factures à encaisser" compte={impayees.length} corpsClassName="p-0">
-          {impayees.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">
-              Toutes les factures sont réglées.
-            </p>
-          ) : (
-            /* Le tableau défile dans son propre cadre : la page, elle, ne
-               défile jamais horizontalement, même sur un écran de téléphone. */
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[38rem] text-sm">
-              <thead>
-                <tr className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">Numéro</th>
-                  <th className="px-4 py-2.5 font-medium">Client</th>
-                  <th className="px-4 py-2.5 font-medium">Échéance</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Montant TTC</th>
-                  <th className="px-4 py-2.5 font-medium">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {impayees.map((facture) => {
-                  const retard = facture.statutCalcule === "RETARD";
-                  const jours = differenceEnJours(facture.dateEcheance, today);
+        <SectionFiche titre={`Mois par mois — ${annee}`}>
+          <GraphiqueCA donnees={mensuel} hauteur={280} />
+        </SectionFiche>
+      </div>
 
-                  return (
-                    <tr
-                      key={facture.id}
-                      className={cn(
-                        "border-b last:border-0",
-                        retard && "bg-rose-50/60 dark:bg-rose-500/5",
-                      )}
-                    >
-                      <td className="px-4 py-2.5 font-mono text-xs">{facture.numero}</td>
-                      <td className="px-4 py-2.5">
-                        <Link
-                          href={`/clients/${facture.client.id}`}
-                          className="hover:underline"
-                        >
-                          {facture.client.entreprise}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-2.5 tabular-nums">
-                        <span className={retard ? "text-rose-700 dark:text-rose-400" : ""}>
-                          {formatDate(facture.dateEcheance)}
-                        </span>
-                        {retard && (
-                          <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-rose-600 dark:text-rose-400">
-                            <AlertTriangleIcon className="size-3" />
-                            {jours} j de retard
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">
-                        {formatEuros(facture.montantTTCCents)}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <BadgeStatut map={STATUTS_FACTURE} valeur={facture.statutCalcule} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            </div>
-          )}
+      <div className="mt-4">
+        <SectionFiche titre={`Historique ${annee}`} compte={mouvements.length}>
+          <ListeMouvements mouvements={mouvements} />
         </SectionFiche>
       </div>
     </>

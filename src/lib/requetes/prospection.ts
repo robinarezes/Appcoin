@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { aujourdHui, finDeJour, maintenant } from "@/lib/dates";
 import { correspond } from "@/lib/recherche";
 
-export type FiltreProspection = "a_appeler" | "rappels" | "tous";
+export type FiltreProspection = "a_appeler" | "rappels" | "potentiels" | "tous";
 
 export type FicheProspection = {
   id: string;
@@ -86,9 +86,20 @@ export async function listerProspection(filtre: FiltreProspection, recherche?: s
     return true;
   };
 
+  // « Potentiel client » : le dernier appel s'est conclu sur un intérêt réel.
+  // La note prise à ce moment-là est ce qui compte pour la relance.
+  const potentiel = (fiche: FicheProspection) =>
+    fiche.dernierAppel?.resultat === "INTERESSE" && fiche.statut !== "CLIENT";
+
+  // L'onglet « À rappeler » montre tout le planning de rappels, pas seulement
+  // ceux du jour : on voit ce qui arrive, les échus sont surlignés sur la carte.
+  const aRappeler = (fiche: FicheProspection) =>
+    fiche.dernierAppel?.resultat === "A_RAPPELER" && fiche.dernierAppel.rappelLe !== null;
+
   let selection = fiches;
   if (filtre === "a_appeler") selection = fiches.filter(aAppeler);
-  if (filtre === "rappels") selection = fiches.filter(rappelDu);
+  if (filtre === "rappels") selection = fiches.filter(aRappeler);
+  if (filtre === "potentiels") selection = fiches.filter(potentiel);
 
   if (recherche?.trim()) {
     selection = selection.filter((f) =>
@@ -96,25 +107,35 @@ export async function listerProspection(filtre: FiltreProspection, recherche?: s
     );
   }
 
-  selection.sort((a, b) => {
-    const rappelA = rappelDu(a) ? 0 : 1;
-    const rappelB = rappelDu(b) ? 0 : 1;
-    if (rappelA !== rappelB) return rappelA - rappelB;
+  if (filtre === "rappels") {
+    // L'onglet des rappels se lit comme un planning : le plus urgent en tête.
+    selection.sort(
+      (a, b) =>
+        (a.dernierAppel?.rappelLe?.getTime() ?? 0) -
+        (b.dernierAppel?.rappelLe?.getTime() ?? 0),
+    );
+  } else {
+    selection.sort((a, b) => {
+      const rappelA = rappelDu(a) ? 0 : 1;
+      const rappelB = rappelDu(b) ? 0 : 1;
+      if (rappelA !== rappelB) return rappelA - rappelB;
 
-    const jamaisA = a.dernierAppel ? 1 : 0;
-    const jamaisB = b.dernierAppel ? 1 : 0;
-    if (jamaisA !== jamaisB) return jamaisA - jamaisB;
+      const jamaisA = a.dernierAppel ? 1 : 0;
+      const jamaisB = b.dernierAppel ? 1 : 0;
+      if (jamaisA !== jamaisB) return jamaisA - jamaisB;
 
-    const dateA = a.dernierAppel?.createdAt.getTime() ?? 0;
-    const dateB = b.dernierAppel?.createdAt.getTime() ?? 0;
-    return dateA - dateB;
-  });
+      const dateA = a.dernierAppel?.createdAt.getTime() ?? 0;
+      const dateB = b.dernierAppel?.createdAt.getTime() ?? 0;
+      return dateA - dateB;
+    });
+  }
 
   return {
     fiches: selection,
     compteurs: {
       aAppeler: fiches.filter(aAppeler).length,
-      rappels: fiches.filter(rappelDu).length,
+      rappels: fiches.filter(aRappeler).length,
+      potentiels: fiches.filter(potentiel).length,
       tous: fiches.length,
     },
   };

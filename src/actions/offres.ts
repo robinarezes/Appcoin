@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { DELAI_PAIEMENT_JOURS } from "@/lib/constantes";
-import { ajouterJours, maintenant } from "@/lib/dates";
+import { maintenant } from "@/lib/dates";
 import { appliquerTVA, centsDepuisSaisie } from "@/lib/format";
-import { numeroFacture, numeroOffre } from "@/lib/numerotation";
+import { numeroOffre } from "@/lib/numerotation";
 import { prisma } from "@/lib/prisma";
 import { utilisateurRequis } from "@/lib/session";
 import {
@@ -18,8 +17,6 @@ import {
 
 function rafraichir(clientId?: string | null, offreId?: string) {
   revalidatePath("/offres");
-  revalidatePath("/factures");
-  revalidatePath("/ca");
   revalidatePath("/");
   if (offreId) revalidatePath(`/offres/${offreId}`);
   if (clientId) revalidatePath(`/clients/${clientId}`);
@@ -165,53 +162,7 @@ export async function changerStatutOffre(id: string, statut: string) {
 
 export async function supprimerOffre(id: string) {
   await utilisateurRequis();
-
-  const liee = await prisma.facture.count({ where: { offreId: id } });
-  if (liee > 0) {
-    return {
-      erreur:
-        "Cette offre a déjà été convertie en facture. Supprimez d'abord la facture correspondante.",
-    };
-  }
-
   const offre = await prisma.offre.delete({ where: { id } });
   rafraichir(offre.clientId);
   redirect("/offres");
-}
-
-/** Une offre acceptée devient une facture, échéance à 30 jours. */
-export async function convertirEnFacture(id: string) {
-  await utilisateurRequis();
-
-  const offre = await prisma.offre.findUnique({ where: { id } });
-  if (!offre) return { erreur: "Offre introuvable." };
-  if (offre.statut !== "ACCEPTEE") {
-    return { erreur: "Seule une offre acceptée peut être convertie en facture." };
-  }
-
-  const dejaFacturee = await prisma.facture.findFirst({ where: { offreId: id } });
-  if (dejaFacturee) {
-    return { erreur: `Cette offre a déjà donné lieu à la facture ${dejaFacturee.numero}.` };
-  }
-
-  const dateEmission = maintenant();
-
-  const facture = await prisma.$transaction(async (tx) =>
-    tx.facture.create({
-      data: {
-        numero: await numeroFacture(tx, dateEmission),
-        offreId: offre.id,
-        clientId: offre.clientId,
-        montantHTCents: offre.montantHTCents,
-        tauxTVA: offre.tauxTVA,
-        montantTTCCents: offre.montantTTCCents,
-        dateEmission,
-        dateEcheance: ajouterJours(dateEmission, DELAI_PAIEMENT_JOURS),
-        statut: "EN_ATTENTE",
-      },
-    }),
-  );
-
-  rafraichir(offre.clientId, offre.id);
-  redirect(`/factures?nouvelle=${facture.numero}`);
 }

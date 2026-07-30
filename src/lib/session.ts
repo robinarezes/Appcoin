@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
@@ -19,8 +20,11 @@ export type UtilisateurConnecte = {
  * resterait valable jusqu'à son expiration (trente jours). Supprimer un compte
  * doit couper l'accès tout de suite. La requête est indexée sur la clé
  * primaire, son coût est négligeable.
+ *
+ * `cache()` mémorise le résultat le temps d'une requête : le layout et la page
+ * appellent tous deux cette fonction, mais la base n'est interrogée qu'une fois.
  */
-export async function utilisateurRequis(): Promise<UtilisateurConnecte> {
+export const utilisateurRequis = cache(async (): Promise<UtilisateurConnecte> => {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
@@ -38,4 +42,4 @@ export async function utilisateurRequis(): Promise<UtilisateurConnecte> {
     email: utilisateur.email,
     couleur: utilisateur.couleur,
   };
-}
+});

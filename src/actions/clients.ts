@@ -56,7 +56,7 @@ export async function modifierClient(
 export async function supprimerClient(id: string) {
   await utilisateurRequis();
 
-  // Les offres, factures, notes et appels partent avec le client (cascade) ;
+  // Les offres, notes et appels partent avec le client (cascade) ;
   // les rendez-vous et tâches sont conservés mais détachés.
   await prisma.client.delete({ where: { id } });
   rafraichir();

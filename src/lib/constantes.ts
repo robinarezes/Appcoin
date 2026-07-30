@@ -181,23 +181,17 @@ export const STATUTS_OFFRE = {
   },
 } as const satisfies Record<string, Entree>;
 
-export const STATUTS_FACTURE = {
-  EN_ATTENTE: {
-    label: "En attente",
-    classe: badge(
-      "bg-amber-50 text-amber-800 ring-amber-600/20",
-      "dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/25",
-    ),
-  },
-  PAYEE: {
-    label: "Payée",
+/** Mouvements financiers : ce qui rentre (CA) et ce qui sort (dépenses). */
+export const TYPES_MOUVEMENT = {
+  ENTREE: {
+    label: "Encaissement",
     classe: badge(
       "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
       "dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/25",
     ),
   },
-  RETARD: {
-    label: "En retard",
+  SORTIE: {
+    label: "Dépense",
     classe: badge(
       "bg-rose-50 text-rose-700 ring-rose-600/20",
       "dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/25",
@@ -266,7 +260,7 @@ export type PrioriteTache = keyof typeof PRIORITES_TACHE;
 export type TypeRdv = keyof typeof TYPES_RDV;
 export type StatutRdv = keyof typeof STATUTS_RDV;
 export type StatutOffre = keyof typeof STATUTS_OFFRE;
-export type StatutFacture = keyof typeof STATUTS_FACTURE;
+export type TypeMouvement = keyof typeof TYPES_MOUVEMENT;
 
 export const CLES_STATUT_CLIENT = Object.keys(STATUTS_CLIENT) as StatutClient[];
 export const CLES_STATUT_TACHE = Object.keys(STATUTS_TACHE) as StatutTache[];
@@ -274,7 +268,7 @@ export const CLES_PRIORITE = Object.keys(PRIORITES_TACHE) as PrioriteTache[];
 export const CLES_TYPE_RDV = Object.keys(TYPES_RDV) as TypeRdv[];
 export const CLES_STATUT_RDV = Object.keys(STATUTS_RDV) as StatutRdv[];
 export const CLES_STATUT_OFFRE = Object.keys(STATUTS_OFFRE) as StatutOffre[];
-export const CLES_STATUT_FACTURE = Object.keys(STATUTS_FACTURE) as StatutFacture[];
+export const CLES_TYPE_MOUVEMENT = Object.keys(TYPES_MOUVEMENT) as TypeMouvement[];
 export const CLES_SOURCE = Object.keys(SOURCES_CLIENT) as SourceClient[];
 
 /** Options prêtes à l'emploi pour un <select>. */
@@ -320,5 +314,3 @@ export const COULEURS_EQUIPE = [
 /** TVA par défaut, en points de base (2000 = 20,00 %). */
 export const TVA_PAR_DEFAUT = 2000;
 
-/** Délai de règlement appliqué lors de la conversion d'une offre en facture. */
-export const DELAI_PAIEMENT_JOURS = 30;

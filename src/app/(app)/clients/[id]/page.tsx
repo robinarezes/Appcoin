@@ -22,14 +22,12 @@ import {
   RESULTATS_APPEL,
   SOURCES_CLIENT,
   STATUTS_CLIENT,
-  STATUTS_FACTURE,
   STATUTS_OFFRE,
   STATUTS_RDV,
   STATUTS_TACHE,
 } from "@/lib/constantes";
 import { formatDate, formatDateHeure, formatDateLongue, maintenant } from "@/lib/dates";
 import { formatEuros } from "@/lib/format";
-import { statutFacture } from "@/lib/metier";
 import { ficheClient } from "@/lib/requetes/clients";
 import { utilisateurRequis } from "@/lib/session";
 
@@ -50,7 +48,8 @@ export default async function PageFicheClient({
   const fiche = await ficheClient(id);
   if (!fiche) notFound();
 
-  const { client, caEncaisseCents, caFactureCents, montantDuCents } = fiche;
+  const { client, caSigneCents } = fiche;
+  const offresAcceptees = client.offres.filter((o) => o.statut === "ACCEPTEE").length;
   const maintenantDate = maintenant();
 
   const rdvAVenir = client.rendezVous.filter(
@@ -99,7 +98,7 @@ export default async function PageFicheClient({
           <ConfirmationSuppression
             action={supprimerClient.bind(null, client.id)}
             titre={`Supprimer ${client.entreprise} ?`}
-            description="La fiche, son journal, ses offres, ses factures et ses appels seront supprimés définitivement. Les rendez-vous et les tâches seront conservés mais détachés du client."
+            description="La fiche, son journal, ses offres et ses appels seront supprimés définitivement. Les rendez-vous et les tâches seront conservés mais détachés du client."
             iconeSeule
           />
         </div>
@@ -177,23 +176,15 @@ export default async function PageFicheClient({
           <SectionFiche titre="Chiffre d'affaires">
             <dl className="grid gap-2.5 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">Encaissé (HT)</dt>
+                <dt className="text-muted-foreground">CA signé (HT)</dt>
                 <dd className="text-base font-semibold tabular-nums">
-                  {formatEuros(caEncaisseCents)}
+                  {formatEuros(caSigneCents)}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">Facturé (HT)</dt>
-                <dd className="tabular-nums">{formatEuros(caFactureCents)}</dd>
+                <dt className="text-muted-foreground">Offres acceptées</dt>
+                <dd className="tabular-nums">{offresAcceptees}</dd>
               </div>
-              {montantDuCents > 0 && (
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">Reste dû (TTC)</dt>
-                  <dd className="font-medium tabular-nums text-amber-700 dark:text-amber-400">
-                    {formatEuros(montantDuCents)}
-                  </dd>
-                </div>
-              )}
             </dl>
           </SectionFiche>
 
@@ -340,33 +331,6 @@ export default async function PageFicheClient({
                       {formatEuros(offre.montantHTCents)}
                     </span>
                     <BadgeStatut map={STATUTS_OFFRE} valeur={offre.statut} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionFiche>
-
-          <SectionFiche titre="Factures" compte={client.factures.length}>
-            {client.factures.length === 0 ? (
-              <LigneVide texte="Aucune facture pour ce client." />
-            ) : (
-              <ul className="grid divide-y">
-                {client.factures.map((facture) => (
-                  <li
-                    key={facture.id}
-                    className="flex items-center gap-3 py-2 first:pt-0 last:pb-0"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-sm">{facture.numero}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Émise le {formatDate(facture.dateEmission)} · échéance{" "}
-                        {formatDate(facture.dateEcheance)}
-                      </p>
-                    </div>
-                    <span className="tabular-nums text-sm">
-                      {formatEuros(facture.montantTTCCents)}
-                    </span>
-                    <BadgeStatut map={STATUTS_FACTURE} valeur={statutFacture(facture)} />
                   </li>
                 ))}
               </ul>
